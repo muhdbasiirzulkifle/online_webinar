@@ -1,15 +1,7 @@
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import {
-  BookOpen,
-  Clock,
-  AlertCircle,
-  FileText,
-  MessageSquare,
-  CheckCircle,
-} from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
 type FormStep = "personal" | "workshop" | "confirmation";
 
@@ -27,6 +19,9 @@ export default function RegistrationForm() {
     termsAccepted: false,
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -41,15 +36,88 @@ export default function RegistrationForm() {
     setFormData((prev) => ({ ...prev, [name]: checked }));
   };
 
+  const validatePersonalStep = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.fullName.trim()) newErrors.fullName = "Name is required";
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email";
+    }
+    if (!formData.university.trim())
+      newErrors.university = "University is required";
+    if (!formData.graduationYear)
+      newErrors.graduationYear = "Graduation year is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateWorkshopStep = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.workshop)
+      newErrors.workshop = "Workshop selection is required";
+    if (!formData.experienceLevel)
+      newErrors.experienceLevel = "Experience level is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleNextStep = () => {
-    if (currentStep === "personal") setCurrentStep("workshop");
-    else if (currentStep === "workshop") setCurrentStep("confirmation");
+    if (currentStep === "personal") {
+      if (validatePersonalStep()) setCurrentStep("workshop");
+    } else if (currentStep === "workshop") {
+      if (validateWorkshopStep()) setCurrentStep("confirmation");
+    }
   };
 
   const handlePrevStep = () => {
     if (currentStep === "workshop") setCurrentStep("personal");
     else if (currentStep === "confirmation") setCurrentStep("workshop");
   };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.termsAccepted) {
+      setErrors({ terms: "You must accept the terms and conditions" });
+      return;
+    }
+
+    // Here you would typically send the data to your backend
+    console.log("Form submitted:", formData);
+    setIsSubmitted(true);
+  };
+
+  if (isSubmitted) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-3xl mx-auto text-center">
+        <div className="flex justify-center mb-6">
+          <CheckCircle className="h-16 w-16 text-green-500" />
+        </div>
+        <h2 className="text-3xl font-bold text-gray-800 mb-4">
+          Registration Complete!
+        </h2>
+        <p className="text-gray-600 mb-6">
+          Thank you for registering for our workshop. We've sent a confirmation
+          email to {formData.email} with all the details.
+        </p>
+        <p className="text-gray-600 mb-8">
+          Please check your inbox and follow the verification instructions to
+          confirm your spot.
+        </p>
+        <Button
+          onClick={() => setIsSubmitted(false)}
+          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md"
+        >
+          Register for Another Workshop
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-3xl mx-auto">
@@ -107,20 +175,35 @@ export default function RegistrationForm() {
             <div>
               <Input
                 type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleInputChange}
                 placeholder="Full Name *"
-                className="w-full p-3 border rounded-md"
+                className={`w-full p-3 border rounded-md ${errors.fullName ? "border-red-500" : ""}`}
               />
+              {errors.fullName && (
+                <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
+              )}
             </div>
             <div>
               <Input
                 type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
                 placeholder="Email Address *"
-                className="w-full p-3 border rounded-md"
+                className={`w-full p-3 border rounded-md ${errors.email ? "border-red-500" : ""}`}
               />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+              )}
             </div>
             <div>
               <Input
                 type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
                 placeholder="Phone Number"
                 className="w-full p-3 border rounded-md"
               />
@@ -128,13 +211,24 @@ export default function RegistrationForm() {
             <div>
               <Input
                 type="text"
+                name="university"
+                value={formData.university}
+                onChange={handleInputChange}
                 placeholder="University Name *"
-                className="w-full p-3 border rounded-md"
+                className={`w-full p-3 border rounded-md ${errors.university ? "border-red-500" : ""}`}
               />
+              {errors.university && (
+                <p className="text-red-500 text-sm mt-1">{errors.university}</p>
+              )}
             </div>
             <div>
-              <select className="w-full p-3 border rounded-md bg-white">
-                <option value="" disabled selected>
+              <select
+                name="graduationYear"
+                value={formData.graduationYear}
+                onChange={handleInputChange}
+                className={`w-full p-3 border rounded-md bg-white ${errors.graduationYear ? "border-red-500" : ""}`}
+              >
+                <option value="" disabled>
                   Expected Graduation Year *
                 </option>
                 <option value="2024">2024</option>
@@ -143,6 +237,11 @@ export default function RegistrationForm() {
                 <option value="2027">2027</option>
                 <option value="2028">2028</option>
               </select>
+              {errors.graduationYear && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.graduationYear}
+                </p>
+              )}
             </div>
           </div>
           <div className="mt-6 flex justify-end">
@@ -165,8 +264,13 @@ export default function RegistrationForm() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Select Workshop
               </label>
-              <select className="w-full p-3 border rounded-md bg-white">
-                <option value="" disabled selected>
+              <select
+                name="workshop"
+                value={formData.workshop}
+                onChange={handleInputChange}
+                className={`w-full p-3 border rounded-md bg-white ${errors.workshop ? "border-red-500" : ""}`}
+              >
+                <option value="" disabled>
                   Choose a workshop
                 </option>
                 <option value="web-dev">Web Development Fundamentals</option>
@@ -175,6 +279,9 @@ export default function RegistrationForm() {
                 <option value="mobile">Mobile App Development</option>
                 <option value="ai">AI & Machine Learning Basics</option>
               </select>
+              {errors.workshop && (
+                <p className="text-red-500 text-sm mt-1">{errors.workshop}</p>
+              )}
             </div>
 
             <div>
@@ -186,8 +293,10 @@ export default function RegistrationForm() {
                   <input
                     type="radio"
                     id="beginner"
-                    name="experience"
+                    name="experienceLevel"
                     value="beginner"
+                    checked={formData.experienceLevel === "beginner"}
+                    onChange={handleInputChange}
                     className="h-4 w-4 text-purple-600"
                   />
                   <label htmlFor="beginner" className="ml-2 text-gray-700">
@@ -198,8 +307,10 @@ export default function RegistrationForm() {
                   <input
                     type="radio"
                     id="intermediate"
-                    name="experience"
+                    name="experienceLevel"
                     value="intermediate"
+                    checked={formData.experienceLevel === "intermediate"}
+                    onChange={handleInputChange}
                     className="h-4 w-4 text-purple-600"
                   />
                   <label htmlFor="intermediate" className="ml-2 text-gray-700">
@@ -210,8 +321,10 @@ export default function RegistrationForm() {
                   <input
                     type="radio"
                     id="advanced"
-                    name="experience"
+                    name="experienceLevel"
                     value="advanced"
+                    checked={formData.experienceLevel === "advanced"}
+                    onChange={handleInputChange}
                     className="h-4 w-4 text-purple-600"
                   />
                   <label htmlFor="advanced" className="ml-2 text-gray-700">
@@ -219,6 +332,11 @@ export default function RegistrationForm() {
                   </label>
                 </div>
               </div>
+              {errors.experienceLevel && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.experienceLevel}
+                </p>
+              )}
             </div>
 
             <div>
@@ -226,6 +344,9 @@ export default function RegistrationForm() {
                 Special Requirements
               </label>
               <textarea
+                name="specialRequirements"
+                value={formData.specialRequirements}
+                onChange={handleInputChange}
                 placeholder="Any dietary restrictions, accessibility needs, or other requirements"
                 className="w-full p-3 border rounded-md bg-white h-24"
               ></textarea>
@@ -266,23 +387,25 @@ export default function RegistrationForm() {
                 <div className="grid grid-cols-2 gap-4 mt-2">
                   <div>
                     <p className="text-sm text-gray-500">Full Name</p>
-                    <p className="font-medium">Jane Doe</p>
+                    <p className="font-medium">{formData.fullName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Email</p>
-                    <p className="font-medium">jane.doe@university.edu</p>
+                    <p className="font-medium">{formData.email}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Phone</p>
-                    <p className="font-medium">+1 (555) 123-4567</p>
+                    <p className="font-medium">
+                      {formData.phone || "Not provided"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">University</p>
-                    <p className="font-medium">State University</p>
+                    <p className="font-medium">{formData.university}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Graduation Year</p>
-                    <p className="font-medium">2025</p>
+                    <p className="font-medium">{formData.graduationYear}</p>
                   </div>
                 </div>
               </div>
@@ -294,18 +417,34 @@ export default function RegistrationForm() {
                 <div className="grid grid-cols-2 gap-4 mt-2">
                   <div>
                     <p className="text-sm text-gray-500">Selected Workshop</p>
-                    <p className="font-medium">Web Development Fundamentals</p>
+                    <p className="font-medium">
+                      {formData.workshop === "web-dev" &&
+                        "Web Development Fundamentals"}
+                      {formData.workshop === "data-science" &&
+                        "Data Science with Python"}
+                      {formData.workshop === "cloud" &&
+                        "Cloud Architecture Workshop"}
+                      {formData.workshop === "mobile" &&
+                        "Mobile App Development"}
+                      {formData.workshop === "ai" &&
+                        "AI & Machine Learning Basics"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Experience Level</p>
-                    <p className="font-medium">Beginner</p>
+                    <p className="font-medium">
+                      {formData.experienceLevel === "beginner" && "Beginner"}
+                      {formData.experienceLevel === "intermediate" &&
+                        "Intermediate"}
+                      {formData.experienceLevel === "advanced" && "Advanced"}
+                    </p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-sm text-gray-500">
                       Special Requirements
                     </p>
                     <p className="font-medium">
-                      Vegetarian lunch option, please.
+                      {formData.specialRequirements || "None"}
                     </p>
                   </div>
                 </div>
@@ -318,6 +457,9 @@ export default function RegistrationForm() {
               <input
                 type="checkbox"
                 id="terms"
+                name="termsAccepted"
+                checked={formData.termsAccepted}
+                onChange={handleCheckboxChange}
                 className="h-4 w-4 text-purple-600"
               />
               <label htmlFor="terms" className="ml-2 text-gray-700 text-sm">
@@ -331,6 +473,9 @@ export default function RegistrationForm() {
                 </a>
               </label>
             </div>
+            {errors.terms && (
+              <p className="text-red-500 text-sm mt-1">{errors.terms}</p>
+            )}
           </div>
 
           <div className="mt-6 flex justify-between">
@@ -341,7 +486,10 @@ export default function RegistrationForm() {
             >
               Back
             </Button>
-            <Button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md">
+            <Button
+              onClick={handleSubmit}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md"
+            >
               Submit Registration
             </Button>
           </div>
